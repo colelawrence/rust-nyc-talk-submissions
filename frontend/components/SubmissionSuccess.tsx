@@ -7,7 +7,9 @@ interface SubmissionSuccessProps {
   onReset: () => void;
 }
 
-export default function SubmissionSuccess({ result, onReset }: SubmissionSuccessProps) {
+export default function SubmissionSuccess(
+  { result, onReset }: SubmissionSuccessProps,
+) {
   const copyInviteLink = async () => {
     try {
       await navigator.clipboard.writeText(result.discordInviteLink);
@@ -30,13 +32,15 @@ export default function SubmissionSuccess({ result, onReset }: SubmissionSuccess
           Submission Successful
         </h2>
         <p className="font-mono text-sm text-secondary mb-6">
-          Your talk proposal has been submitted and our organizers have been notified.
+          Your talk proposal has been submitted and our organizers have been
+          notified.
         </p>
 
         {/* Submission Details */}
         <div className="bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded p-4 mb-6">
           <p className="text-sm font-mono text-secondary">
-            <span className="text-muted">Submission ID:</span> #{result.submissionId}
+            <span className="text-muted">Submission ID:</span>{" "}
+            #{result.submissionId}
           </p>
         </div>
 
@@ -44,14 +48,17 @@ export default function SubmissionSuccess({ result, onReset }: SubmissionSuccess
         <div className="border-2 border-dashed border-[var(--accent-primary)] rounded p-6 mb-6">
           <div className="flex items-center justify-center mb-3">
             <span className="text-xl mr-2">💬</span>
-            <h3 className="font-heading text-2xl font-medium" style={{color: 'var(--text-primary)'}}>
+            <h3
+              className="font-heading text-2xl font-medium"
+              style={{ color: "var(--text-primary)" }}
+            >
               Discord Discussion Channel
             </h3>
           </div>
-          
+
           <p className="font-mono text-sm text-secondary mb-4">
-            A dedicated Discord channel has been created for discussing your talk proposal.
-            Join the conversation with our organizers!
+            A dedicated Discord channel has been created for discussing your
+            talk proposal. Join the conversation with our organizers!
           </p>
 
           <div className="space-y-3">
@@ -93,7 +100,9 @@ export default function SubmissionSuccess({ result, onReset }: SubmissionSuccess
 
         {/* Next Steps */}
         <div className="text-left bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded p-4 mb-6">
-          <h4 className="font-mono text-sm font-medium text-secondary mb-2">What happens next?</h4>
+          <h4 className="font-mono text-sm font-medium text-secondary mb-2">
+            What happens next?
+          </h4>
           <ul className="text-xs font-mono text-muted space-y-1">
             <li>• Our organizers have been notified of your submission</li>
             <li>• Join the Discord channel to discuss details</li>

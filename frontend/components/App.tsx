@@ -17,7 +17,9 @@ export interface SubmissionResult {
 }
 
 export default function App() {
-  const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<
+    SubmissionResult | null
+  >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,10 +58,18 @@ export default function App() {
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
-      
-      <style>{`
+      <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossOrigin="anonymous"
+      />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet"
+      />
+
+      <style>
+        {`
         :root {
           --bg-primary: #f8f9fa;
           --bg-secondary: #e9ecef;
@@ -99,8 +109,9 @@ export default function App() {
         .text-success { color: var(--success); }
         .text-error { color: var(--error); }
         .text-accent { color: var(--accent-primary); }
-      `}</style>
-      
+      `}
+      </style>
+
       <div className="min-h-screen bg-[var(--bg-primary)] py-12 px-4">
         <div className="max-w-[480px] mx-auto">
           <div className="text-center mb-8">
@@ -112,18 +123,20 @@ export default function App() {
             </p>
           </div>
 
-        {submissionResult ? (
-          <SubmissionSuccess 
-            result={submissionResult} 
-            onReset={handleReset}
-          />
-        ) : (
-          <TalkSubmissionForm
-            onSubmit={handleSubmission}
-            isSubmitting={isSubmitting}
-            error={error}
-          />
-        )}
+          {submissionResult
+            ? (
+              <SubmissionSuccess
+                result={submissionResult}
+                onReset={handleReset}
+              />
+            )
+            : (
+              <TalkSubmissionForm
+                onSubmit={handleSubmission}
+                isSubmitting={isSubmitting}
+                error={error}
+              />
+            )}
         </div>
       </div>
     </>

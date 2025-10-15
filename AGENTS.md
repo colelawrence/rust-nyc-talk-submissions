@@ -1,22 +1,51 @@
 You are an advanced assistant specialized in generating Val Town code.
 
+## This Project: Talk Submission System
+
+### Architecture
+
+- **Val Town Project**: Deno-based Discord bot for talk submissions with React frontend
+- **Backend**: Hono API server (backend/index.ts) handling submissions and Discord integration
+- **Frontend**: React 18.2.0 with TypeScript (frontend/index.tsx, components/)
+- **Database**: SQLite with talk submissions table (talk_submissions_3)
+- **Discord Integration**: Bot creates channels, sends notifications, generates invite links
+- **Shared**: TypeScript types and utilities (shared/types.ts)
+
+### Commands
+
+- **No explicit test/lint commands** - Val Town platform handles these automatically
+- **Development**: Val Town auto-deploys on changes, no local build needed
+- **Database**: SQLite migrations run automatically on startup in backend/index.ts
+
+### Discord API Design Notes
+
+- **Role Mentions**: Use `<@&ROLE_ID>` format in message content
+- **User Mentions**: Use `<@USER_ID>` format in message content
+- **Channel Mentions**: Use `<#CHANNEL_ID>` format in message content
+- **Special Mentions**: `@everyone` and `@here` work as plain text (no ID needed)
+- **Permissions**: Role must be mentionable OR bot needs "Mention Everyone" permission
+
 ## Core Guidelines
 
 - Ask clarifying questions when requirements are ambiguous
 - Provide complete, functional solutions rather than skeleton implementations
 - Test your logic against edge cases before presenting the final solution
 - Ensure all code follows Val Town's specific platform requirements
-- If a section of code that you're working on is getting too complex, consider refactoring it into subcomponents
+- If a section of code that you're working on is getting too complex, consider
+  refactoring it into subcomponents
 
 ## Code Standards
 
 - Generate code in TypeScript or TSX
 - Add appropriate TypeScript types and interfaces for all data structures
 - Prefer official SDKs or libraries than writing API calls directly
-- Ask the user to supply API or library documentation if you are at all unsure about it
+- Ask the user to supply API or library documentation if you are at all unsure
+  about it
 - **Never bake in secrets into the code** - always use environment variables
-- Include comments explaining complex logic (avoid commenting obvious operations)
-- Follow modern ES6+ conventions and functional programming practices if possible
+- Include comments explaining complex logic (avoid commenting obvious
+  operations)
+- Follow modern ES6+ conventions and functional programming practices if
+  possible
 
 ## Types of triggers
 
@@ -62,7 +91,6 @@ export default async function (email: Email) {
 
 Files that are Email triggers have email in their name like `foobar.email.tsx`
 
-
 ## Val Town Standard Libraries
 
 Val Town provides several hosted services and utility functions.
@@ -81,17 +109,21 @@ await blob.delete("myKey");
 
 ```ts
 import { sqlite } from "https://esm.town/v/stevekrouse/sqlite";
-const TABLE_NAME = 'todo_app_users_2';
+const TABLE_NAME = "todo_app_users_2";
 // Create table - do this before usage and change table name when modifying schema
 await sqlite.execute(`CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL
 )`);
 // Query data
-const result = await sqlite.execute(`SELECT * FROM ${TABLE_NAME} WHERE id = ?`, [1]);
+const result = await sqlite.execute(
+  `SELECT * FROM ${TABLE_NAME} WHERE id = ?`,
+  [1],
+);
 ```
 
-Note: When changing a SQLite table's schema, change the table's name (e.g., add _2 or _3) to create a fresh table.
+Note: When changing a SQLite table's schema, change the table's name (e.g., add
+_2 or _3) to create a fresh table.
 
 ### OpenAI
 
@@ -112,10 +144,10 @@ const completion = await openai.chat.completions.create({
 ```ts
 import { email } from "https://esm.town/v/std/email";
 // By default emails the owner of the val
-await email({ 
-  subject: "Hi",  
-  text: "Hi", 
-  html: "<h1>Hi</h1>"
+await email({
+  subject: "Hi",
+  text: "Hi",
+  html: "<h1>Hi</h1>",
 });
 ```
 
@@ -128,11 +160,14 @@ Val Town provides several utility functions to help with common project tasks.
 Always import utilities with version pins to avoid breaking changes:
 
 ```ts
-import { parseProject, readFile, serveFile } from "https://esm.town/v/std/utils@85-main/index.ts";
+import {
+  parseProject,
+  readFile,
+  serveFile,
+} from "https://esm.town/v/std/utils@85-main/index.ts";
 ```
 
 ### Available Utilities
-
 
 #### **serveFile** - Serve project files with proper content types
 
@@ -140,8 +175,8 @@ For example, in Hono:
 
 ```ts
 // serve all files in frontend/ and shared/
-app.get("/frontend/*", c => serveFile(c.req.path, import.meta.url));
-app.get("/shared/*", c => serveFile(c.req.path, import.meta.url));
+app.get("/frontend/*", (c) => serveFile(c.req.path, import.meta.url));
+app.get("/shared/*", (c) => serveFile(c.req.path, import.meta.url));
 ```
 
 #### **readFile** - Read files from within the project:
@@ -159,42 +194,64 @@ const files = await listFiles(import.meta.url);
 
 #### **parseProject** - Extract information about the current project from import.meta.url
 
-This is useful for including info for linking back to a val, ie in "view source" urls:
+This is useful for including info for linking back to a val, ie in "view source"
+urls:
 
 ```ts
 const projectVal = parseProject(import.meta.url);
 console.log(projectVal.username); // Owner of the project
-console.log(projectVal.name);     // Project name
-console.log(projectVal.version);  // Version number
-console.log(projectVal.branch);   // Branch name
+console.log(projectVal.name); // Project name
+console.log(projectVal.version); // Version number
+console.log(projectVal.branch); // Branch name
 console.log(projectVal.links.self.project); // URL to the project page
 ```
 
-However, it's *extremely importing* to note that `parseProject` and other Standard Library utilities ONLY RUN ON THE SERVER.
-If you need access to this data on the client, run it in the server and pass it to the client by splicing it into the HTML page
-or by making an API request for it.
+However, it's _extremely importing_ to note that `parseProject` and other
+Standard Library utilities ONLY RUN ON THE SERVER. If you need access to this
+data on the client, run it in the server and pass it to the client by splicing
+it into the HTML page or by making an API request for it.
 
 ## Val Town Platform Specifics
 
-- **Redirects:** Use `return new Response(null, { status: 302, headers: { Location: "/place/to/redirect" }})` instead of `Response.redirect` which is broken
-- **Images:** Avoid external images or base64 images. Use emojis, unicode symbols, or icon fonts/libraries instead
-- **AI Image:** To inline generate an AI image use: `<img src="https://maxm-imggenurl.web.val.run/the-description-of-your-image" />`
+- **Redirects:** Use
+  `return new Response(null, { status: 302, headers: { Location: "/place/to/redirect" }})`
+  instead of `Response.redirect` which is broken
+- **Images:** Avoid external images or base64 images. Use emojis, unicode
+  symbols, or icon fonts/libraries instead
+- **AI Image:** To inline generate an AI image use:
+  `<img src="https://maxm-imggenurl.web.val.run/the-description-of-your-image" />`
 - **Storage:** DO NOT use the Deno KV module for storage
 - **Browser APIs:** DO NOT use the `alert()`, `prompt()`, or `confirm()` methods
-- **Weather Data:** Use open-meteo for weather data (doesn't require API keys) unless otherwise specified
-- **View Source:** Add a view source link by importing & using `import.meta.url.replace("ems.sh", "val.town)"` (or passing this data to the client) and include `target="_top"` attribute
-- **Error Debugging:** Add `<script src="https://esm.town/v/std/catch"></script>` to HTML to capture client-side errors
-- **Error Handling:** Only use try...catch when there's a clear local resolution; Avoid catches that merely log or return 500s. Let errors bubble up with full context
-- **Environment Variables:** Use `Deno.env.get('keyname')` when you need to, but generally prefer APIs that don't require keys
-- **Imports:** Use `https://esm.sh` for npm and Deno dependencies to ensure compatibility on server and browser
-- **Storage Strategy:** Only use backend storage if explicitly required; prefer simple static client-side sites
-- **React Configuration:** When using React libraries, pin versions with `?deps=react@18.2.0,react-dom@18.2.0` and start the file with `/** @jsxImportSource https://esm.sh/react@18.2.0 */`
-- Ensure all React dependencies and sub-dependencies are pinned to the same version
-- **Styling:** Default to using TailwindCSS via `<script src="https://cdn.twind.style" crossorigin></script>` unless otherwise specified
+- **Weather Data:** Use open-meteo for weather data (doesn't require API keys)
+  unless otherwise specified
+- **View Source:** Add a view source link by importing & using
+  `import.meta.url.replace("ems.sh", "val.town)"` (or passing this data to the
+  client) and include `target="_top"` attribute
+- **Error Debugging:** Add
+  `<script src="https://esm.town/v/std/catch"></script>` to HTML to capture
+  client-side errors
+- **Error Handling:** Only use try...catch when there's a clear local
+  resolution; Avoid catches that merely log or return 500s. Let errors bubble up
+  with full context
+- **Environment Variables:** Use `Deno.env.get('keyname')` when you need to, but
+  generally prefer APIs that don't require keys
+- **Imports:** Use `https://esm.sh` for npm and Deno dependencies to ensure
+  compatibility on server and browser
+- **Storage Strategy:** Only use backend storage if explicitly required; prefer
+  simple static client-side sites
+- **React Configuration:** When using React libraries, pin versions with
+  `?deps=react@18.2.0,react-dom@18.2.0` and start the file with
+  `/** @jsxImportSource https://esm.sh/react@18.2.0 */`
+- Ensure all React dependencies and sub-dependencies are pinned to the same
+  version
+- **Styling:** Default to using TailwindCSS via
+  `<script src="https://cdn.twind.style" crossorigin></script>` unless otherwise
+  specified
 
 ## Project Structure and Design Patterns
 
 ### Recommended Directory Structure
+
 ```
 ├── backend/
 │   ├── database/
@@ -225,30 +282,35 @@ or by making an API request for it.
 
 - Hono is the recommended API framework
 - Main entry point should be `backend/index.ts`
-- **Static asset serving:** Use the utility functions to read and serve project files:
+- **Static asset serving:** Use the utility functions to read and serve project
+  files:
   ```ts
-  import { readFile, serveFile } from "https://esm.town/v/std/utils@85-main/index.ts";
-  
+  import {
+    readFile,
+    serveFile,
+  } from "https://esm.town/v/std/utils@85-main/index.ts";
+
   // serve all files in frontend/ and shared/
-  app.get("/frontend/*", c => serveFile(c.req.path, import.meta.url));
-  app.get("/shared/*", c => serveFile(c.req.path, import.meta.url));
-  
+  app.get("/frontend/*", (c) => serveFile(c.req.path, import.meta.url));
+  app.get("/shared/*", (c) => serveFile(c.req.path, import.meta.url));
+
   // For index.html, often you'll want to bootstrap with initial data
-  app.get("/", async c => {
+  app.get("/", async (c) => {
     let html = await readFile("/frontend/index.html", import.meta.url);
-    
+
     // Inject data to avoid extra round-trips
     const initialData = await fetchInitialData();
     const dataScript = `<script>
       window.__INITIAL_DATA__ = ${JSON.stringify(initialData)};
     </script>`;
-    
+
     html = html.replace("</head>", `${dataScript}</head>`);
     return c.html(html);
   });
   ```
 - Create RESTful API routes for CRUD operations
-- Always include this snippet at the top-level Hono app to re-throwing errors to see full stack traces:
+- Always include this snippet at the top-level Hono app to re-throwing errors to
+  see full stack traces:
   ```ts
   // Unwrap Hono errors to see original error details
   app.onError((err, c) => {
@@ -257,13 +319,14 @@ or by making an API request for it.
   ```
 
 ### Database Patterns
+
 - Run migrations on startup or comment out for performance
 - Change table names when modifying schemas rather than altering
 - Export clear query functions with proper TypeScript typing
 
 ## Common Gotchas and Solutions
 
-1. **Environment Limitations:** 
+1. **Environment Limitations:**
    - Val Town runs on Deno in a serverless context, not Node.js
    - Code in `shared/` must work in both frontend and backend environments
    - Cannot use `Deno` keyword in shared code
@@ -276,7 +339,8 @@ or by making an API request for it.
 
 3. **React Configuration:**
    - All React dependencies must be pinned to 18.2.0
-   - Always include `@jsxImportSource https://esm.sh/react@18.2.0` at the top of React files
+   - Always include `@jsxImportSource https://esm.sh/react@18.2.0` at the top of
+     React files
    - Rendering issues often come from mismatched React versions
 
 4. **File Handling:**
@@ -286,5 +350,5 @@ or by making an API request for it.
 
 5. **API Design:**
    - `fetch` handler is the entry point for HTTP vals
-   - Run the Hono app with `export default app.fetch // This is the entry point for HTTP vals`
-
+   - Run the Hono app with
+     `export default app.fetch // This is the entry point for HTTP vals`

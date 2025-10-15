@@ -2,24 +2,24 @@ name: Deploy to Val Town
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: Deploy
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Deno
-      uses: denoland/setup-deno@v2
-      with:
-        deno-version: v2.x
-    
-    - name: Install Val Town CLI
-      run: deno install -grAf jsr:@valtown/vt
-    
-    - name: Deploy to Val Town
-      run: vt push
-      env:
-        VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install Val Town CLI
+        run: deno install -grAf jsr:@valtown/vt
+
+      - name: Deploy to Val Town
+        run: vt push
+        env:
+          VAL_TOWN_API_KEY: ${{ secrets.VAL_TOWN_API_KEY }}

@@ -140,10 +140,13 @@ app.post("/api/submissions", async (c) => {
       console.error(
         `❌ [API] Validation failed - submitter name required when submitting on behalf`,
       );
-      return c.json({
-        error:
-          "Submitter name is required when submitting on behalf of someone else",
-      }, 400);
+      return c.json(
+        {
+          error:
+            "Submitter name is required when submitting on behalf of someone else",
+        },
+        400,
+      );
     }
 
     console.log(`💾 [API] Inserting submission into database`);
@@ -256,10 +259,9 @@ app.post("/api/discord/test", async (c) => {
       );
     }
 
-    const sanitizedChannelName = channelName.toLowerCase().replace(
-      /[^a-z0-9]/g,
-      "-",
-    );
+    const sanitizedChannelName = channelName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-");
     const message = firstMessage;
 
     console.log(`🧪 [Test] Creating test channel: ${sanitizedChannelName}`);
@@ -333,7 +335,9 @@ async function createDiscordChannel(
 
   try {
     const channelName = `nodate-${submissionId}-${
-      speakerName.toLowerCase().replace(/[^a-z0-9]/g, "-")
+      speakerName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-")
     }`;
     console.log(`📝 [Discord] Generated channel name: "${channelName}"`);
 
@@ -361,7 +365,7 @@ async function createDiscordChannel(
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(channelData),
@@ -448,7 +452,7 @@ async function createDiscordInvite(channelId: string): Promise<string> {
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(inviteData),
@@ -544,7 +548,7 @@ async function createDiscordTestChannel(channelName: string): Promise<string> {
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(channelData),
@@ -593,7 +597,7 @@ async function sendTestMessage(
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(messageData),
@@ -675,7 +679,7 @@ async function notifyTestOrganizers(
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(messageData),
@@ -780,7 +784,7 @@ async function postToOrganizersChannel(
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(messageData),
@@ -904,7 +908,7 @@ The organizers have been notified and will be in touch soon!`;
       {
         method: "POST",
         headers: {
-          "Authorization": `Bot ${botToken}`,
+          Authorization: `Bot ${botToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(messageData),
