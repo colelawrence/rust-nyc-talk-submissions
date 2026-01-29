@@ -14,7 +14,7 @@ export interface SubmissionRequest {
   talkContext: string;
   isOnBehalf: boolean;
   submitterName?: string;
-  email: string;
+  email?: string;
 }
 
 export interface SubmissionResponse {

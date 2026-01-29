@@ -2,19 +2,13 @@
 import React, { useState } from "https://esm.sh/react@18.2.0";
 import TalkSubmissionForm from "./TalkSubmissionForm.tsx";
 import SubmissionSuccess from "./SubmissionSuccess.tsx";
+import type {
+  SubmissionRequest,
+  SubmissionResponse,
+} from "/shared/types.ts";
 
-export interface SubmissionData {
-  speakerName: string;
-  talkContext: string;
-  isOnBehalf: boolean;
-  submitterName?: string;
-}
-
-export interface SubmissionResult {
-  success: boolean;
-  submissionId: number;
-  discordInviteLink: string;
-}
+export type SubmissionData = SubmissionRequest;
+export type SubmissionResult = SubmissionResponse;
 
 export default function App() {
   const [submissionResult, setSubmissionResult] = useState<
