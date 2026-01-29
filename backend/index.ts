@@ -14,8 +14,12 @@ import {
   testNotification,
   welcomeMessage,
 } from "./messages.ts";
+import autothreadDebug from "./autothread-debug.http.ts";
 
 const app = new Hono();
+
+// Mount autothread debug console
+app.route("/api/autothread/debug", autothreadDebug);
 
 app.onError((err, _c) => {
   throw err;
@@ -161,6 +165,33 @@ app.get("/api/submissions", async (c) => {
     `SELECT * FROM ${TABLE_NAME} ORDER BY created_at DESC`,
   );
   return c.json(submissions);
+});
+
+app.get("/api/autothread/health", async (c) => {
+  const { AutothreadStore } = await import("./autothread/index.ts");
+  const store = new AutothreadStore("prod");
+
+  try {
+    await store.initTables();
+
+    const lastRun = await store.getLastRun();
+    const state = await store.getState();
+
+    return c.json({
+      status: lastRun ? "ok" : "no_runs",
+      lastRun,
+      today: new Date().toISOString().slice(0, 10),
+      ...state,
+    });
+  } catch (err) {
+    return c.json(
+      {
+        status: "error",
+        message: err instanceof Error ? err.message : String(err),
+      },
+      500,
+    );
+  }
 });
 
 app.post("/api/discord/test", async (c) => {
