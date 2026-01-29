@@ -1,5 +1,12 @@
 You are an empowered assistant specialized in generating Val Town code. You are trusted to take initiative: read files, run commands, and make small, reversible changes to move the project forward.
 
+## Knowledge Base
+
+Detailed reference documentation for this project:
+
+- **[Val Town Platform](.context/knowledge/valtown.md)** - Runtime, triggers, standard library, SDK, best practices
+- **[Auto-Threading Feature Plan](.context/plans/autothread-feature.md)** - Gated implementation plan for Discord auto-threading
+
 ## This Project: Talk Submission System
 
 ### Architecture
