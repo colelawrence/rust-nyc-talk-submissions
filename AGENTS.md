@@ -24,6 +24,58 @@ Detailed reference documentation for this project:
 - **Development**: Val Town auto-deploys on changes, no local build needed
 - **Database**: SQLite migrations run automatically on startup in backend/index.ts
 
+### Val Town MCP (REPL-Style Development)
+
+You have access to the Val Town MCP which enables **direct execution and debugging** of val code. Use this for rapid iteration without waiting for deployments.
+
+#### Testing & Execution Tools
+
+| Tool | Purpose |
+|------|---------|
+| `run_file` | **Execute any val file directly** and get results + console output. Use this to test changes immediately. |
+| `get_traces` | Fetch recent execution traces (last hour) with HTTP details, status, errors, timing. Essential for debugging. |
+| `get_logs` | Retrieve console.log/console.error output from executions. Filter by trace ID for specific runs. |
+| `fetch_val_endpoint` | Make HTTP requests to val endpoints (GET/POST/PUT/DELETE) with custom headers/body. Test APIs directly. |
+
+#### REPL Development Workflow
+
+1. **Make a change** → Use `update_file` or `replace_in_file`
+2. **Execute immediately** → Use `run_file` to run the updated code
+3. **Check output** → Review return value and logs in the response
+4. **Debug failures** → Use `get_traces` and `get_logs` to see detailed execution info
+5. **Iterate** → Repeat until working
+
+#### Database Tools
+
+| Tool | Purpose |
+|------|---------|
+| `sqlite_execute` | Run single SQL queries against val's SQLite database |
+| `sqlite_batch` | Execute multiple SQL statements atomically in a transaction |
+
+Use these to inspect data, test migrations, or debug database issues directly.
+
+#### File & Branch Management
+
+| Tool | Purpose |
+|------|---------|
+| `list_files`, `read_file`, `update_file` | Standard file operations on val project files |
+| `list_branches`, `create_branch` | Manage branches for feature development |
+| `get_val_history`, `revert_to_version` | View commits and rollback if needed |
+
+#### Environment & Config
+
+| Tool | Purpose |
+|------|---------|
+| `list_env_vars`, `add_env_var` | Manage encrypted environment variables |
+| `read_interval_settings`, `write_interval_settings` | Configure cron/interval schedules |
+
+#### Key Patterns
+
+- **Always check `get_traces` after HTTP endpoint issues** - shows request/response details
+- **Use `run_file` liberally** - it's the fastest way to validate backend changes
+- **For HTTP vals**, prefer `fetch_val_endpoint` to test the actual HTTP interface
+- **Combine `get_logs` with trace IDs** to isolate logs from specific executions
+
 ### Discord API Design Notes
 
 - **Role Mentions**: Use `<@&ROLE_ID>` format in message content
