@@ -1,5 +1,5 @@
-/** @jsxImportSource https://esm.sh/react@18.2.0 */
-import React from "https://esm.sh/react@18.2.0";
+/** @jsxImportSource https://esm.sh/v135/react@18.2.0 */
+import React from "https://esm.sh/v135/react@18.2.0";
 import type { SubmissionResult } from "./App.tsx";
 
 interface SubmissionSuccessProps {

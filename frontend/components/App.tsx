@@ -1,5 +1,5 @@
-/** @jsxImportSource https://esm.sh/react@18.2.0 */
-import React, { useState } from "https://esm.sh/react@18.2.0";
+/** @jsxImportSource https://esm.sh/v135/react@18.2.0 */
+import React, { useState } from "https://esm.sh/v135/react@18.2.0";
 import TalkSubmissionForm from "./TalkSubmissionForm.tsx";
 import SubmissionSuccess from "./SubmissionSuccess.tsx";
 import type {
