@@ -20,6 +20,7 @@ export class DiscordApiError extends Error {
       50013: "Missing permissions to perform this action",
       10004: "Guild not found - check guild ID",
       50035: "Invalid form body - check request data",
+      160004: "A thread has already been created for this message",
     };
 
     return hints[this.discordError.code];
@@ -32,6 +33,11 @@ export function safeParseJson(text: string): any {
   } catch {
     return { raw: text };
   }
+}
+
+/** Check if a Discord error means "thread already exists for this message" */
+export function isThreadAlreadyExistsError(error: unknown): boolean {
+  return error instanceof DiscordApiError && error.discordError?.code === 160004;
 }
 
 export function logError(scope: string, error: unknown): void {

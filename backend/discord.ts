@@ -227,7 +227,10 @@ class RealDiscordService implements DiscordService {
       `/channels/${channelId}/messages/${messageId}/threads`,
       {
         method: "POST",
-        body: JSON.stringify({ name: threadName }),
+        body: JSON.stringify({
+          name: threadName,
+          auto_archive_duration: 1440, // 24 hours — explicit to avoid server-default surprises
+        }),
       },
     );
 

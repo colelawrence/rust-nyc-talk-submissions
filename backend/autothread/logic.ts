@@ -7,6 +7,7 @@
 
 import { OpenAI } from "https://esm.town/v/std/openai";
 import type { DiscordChannel, DiscordMessage, DiscordService } from "../discord.ts";
+import { isThreadAlreadyExistsError } from "../errors.ts";
 import type { AutothreadStore } from "./store.ts";
 import type {
   AutothreadConfig,
@@ -20,7 +21,7 @@ import type {
 // Constants
 const COOLDOWN_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_THREADS_PER_CHANNEL_PER_WINDOW = 3;
-const MAX_THREAD_NAME_LENGTH = 60;
+const MAX_THREAD_NAME_LENGTH = 97; // Discord allows 100; leave room for "..."
 const MIN_MESSAGE_LENGTH = 10;
 
 // Regex patterns for content filtering
@@ -474,6 +475,20 @@ export async function processChannel(
       safelyProcessedUpTo = msg.id;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
+
+      // Discord 160004: thread already exists for this message — treat as success
+      if (isThreadAlreadyExistsError(err)) {
+        console.log(
+          `ℹ️ [Autothread] Thread already exists for message ${msg.id} in #${channel.name}, marking as created`,
+        );
+        await store.updateMessageStatus(channel.id, msg.id, "created", undefined);
+        ctx.events.push(
+          createEvent("info", "thread_already_exists", channel.id, msg.id),
+        );
+        safelyProcessedUpTo = msg.id;
+        continue;
+      }
+
       ctx.errorsThisRun++;
       ctx.lastError = errorMsg;
 
@@ -518,15 +533,40 @@ export async function pollAndProcessMessages(
   ctx: RunContext,
 ): Promise<PlannedAction[]> {
   const allChannels = await discord.listGuildChannels();
+  const textChannels = allChannels.filter((ch) => ch.type === 0);
 
-  let autothreadChannels = allChannels.filter(
-    (ch) => ch.type === 0 && hasAutothreadTag(ch.topic),
+  let autothreadChannels = textChannels.filter(
+    (ch) => hasAutothreadTag(ch.topic),
   );
 
+  if (autothreadChannels.length === 0) {
+    console.log(
+      `ℹ️ [Autothread] No channels with [autothread] tag found. Checked ${textChannels.length} text channels. ` +
+      `Add "[autothread]" to a channel's topic to enable. Sample topics: ${textChannels.slice(0, 5).map((ch) => `#${ch.name}: "${ch.topic ?? "(empty)"}"`).join(", ")}`,
+    );
+    ctx.events.push(
+      createEvent("info", "no_autothread_channels", undefined, undefined, {
+        textChannelCount: textChannels.length,
+        sampleChannels: textChannels.slice(0, 5).map((c) => ({
+          id: c.id,
+          name: c.name,
+          topic: c.topic ?? null,
+        })),
+      }),
+    );
+    return [];
+  }
+
   if (config.channelAllowlist) {
+    const beforeAllowlist = autothreadChannels.length;
     autothreadChannels = autothreadChannels.filter((ch) =>
       config.channelAllowlist!.includes(ch.id),
     );
+    if (autothreadChannels.length === 0 && beforeAllowlist > 0) {
+      console.warn(
+        `⚠️ [Autothread] ${beforeAllowlist} channels have [autothread] tag but none match the allowlist: ${config.channelAllowlist.join(",")}`,
+      );
+    }
   }
 
   autothreadChannels = autothreadChannels.slice(0, config.maxChannelsPerRun);
@@ -534,8 +574,12 @@ export async function pollAndProcessMessages(
   ctx.events.push(
     createEvent("info", "poll_started", undefined, undefined, {
       channelCount: autothreadChannels.length,
-      channels: autothreadChannels.map((c) => ({ id: c.id, name: c.name })),
+      channels: autothreadChannels.map((c) => ({ id: c.id, name: c.name, topic: c.topic })),
     }),
+  );
+
+  console.log(
+    `🔍 [Autothread] Found ${autothreadChannels.length} autothread channel(s): ${autothreadChannels.map((c) => `#${c.name}`).join(", ")}`,
   );
 
   if (autothreadChannels.length === 0) {

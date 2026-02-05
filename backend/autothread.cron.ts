@@ -17,6 +17,7 @@ import { loadEnv } from "./config.ts";
 import { makeDiscordService } from "./discord.ts";
 import { runAutothread, DEFAULT_CONFIG } from "./autothread/index.ts";
 import type { AutothreadConfig, ExecutionMode } from "./autothread/index.ts";
+import { logError } from "./errors.ts";
 
 function getAutothreadConfig(): Partial<AutothreadConfig> {
   const dryRun = Deno.env.get("AUTOTHREAD_DRY_RUN")?.toLowerCase() === "true";
@@ -39,30 +40,56 @@ function getAutothreadConfig(): Partial<AutothreadConfig> {
 export default async function () {
   console.log(`🚀 [Autothread] Cron job started`);
 
-  const config = loadEnv();
+  try {
+    const config = loadEnv();
 
-  if (!config.discord) {
-    console.warn(
-      `⚠️ [Autothread] Discord not configured, running in noop mode`,
+    if (!config.discord) {
+      console.warn(
+        `⚠️ [Autothread] Discord not configured, running in noop mode`,
+      );
+    }
+
+    const discord = makeDiscordService(config.discord);
+    const autothreadEnvConfig = getAutothreadConfig();
+
+    const fullConfig: AutothreadConfig = {
+      ...DEFAULT_CONFIG,
+      ...autothreadEnvConfig,
+      namespace: "prod", // Cron always uses prod
+    };
+
+    console.log(
+      `⚙️ [Autothread] Config: mode=${fullConfig.mode}, enableAI=${fullConfig.enableAI}, namespace=${fullConfig.namespace}, allowlist=${fullConfig.channelAllowlist?.join(",") ?? "all"}`,
     );
+
+    const result = await runAutothread(discord, fullConfig);
+
+    // Log detailed results for observability
+    console.log(
+      `✅ [Autothread] Cron complete. Status: ${result.status}, Threads: ${result.threadsCreated}, Errors: ${result.errorCount}, Duration: ${result.durationMs}ms, Iterations: ${result.iterations}`,
+    );
+
+    if (result.plannedActions.length > 0) {
+      console.log(
+        `📋 [Autothread] Actions: ${JSON.stringify(result.plannedActions)}`,
+      );
+    }
+
+    if (result.errorCount > 0) {
+      console.error(
+        `❌ [Autothread] Last error: ${result.lastError}`,
+      );
+      // Log error-level events for visibility
+      const errorEvents = result.events.filter((e) => e.level === "error");
+      for (const evt of errorEvents) {
+        console.error(
+          `❌ [Autothread] Event: ${evt.event} channel=${evt.channelId ?? "?"} msg=${evt.messageId ?? "?"} ${JSON.stringify(evt.details ?? {})}`,
+        );
+      }
+    }
+  } catch (error) {
+    logError("Autothread:Cron", error);
+    // Re-throw so Val Town marks the cron run as failed
+    throw error;
   }
-
-  const discord = makeDiscordService(config.discord);
-  const autothreadEnvConfig = getAutothreadConfig();
-
-  const fullConfig: AutothreadConfig = {
-    ...DEFAULT_CONFIG,
-    ...autothreadEnvConfig,
-    namespace: "prod", // Cron always uses prod
-  };
-
-  console.log(
-    `⚙️ [Autothread] Config: mode=${fullConfig.mode}, enableAI=${fullConfig.enableAI}, namespace=${fullConfig.namespace}, allowlist=${fullConfig.channelAllowlist?.join(",") ?? "all"}`,
-  );
-
-  const result = await runAutothread(discord, fullConfig);
-
-  console.log(
-    `✅ [Autothread] Cron complete. Status: ${result.status}, Threads: ${result.threadsCreated}, Errors: ${result.errorCount}`,
-  );
 }
