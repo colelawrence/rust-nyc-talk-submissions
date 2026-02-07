@@ -17,21 +17,53 @@ export default function TalkSubmissionForm(
     isOnBehalf: false,
     submitterName: "",
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setValidationError(null);
 
-    // Basic validation
-    if (!formData.speakerName.trim() || !formData.talkContext.trim()) {
+    // iOS/Safari can occasionally autofill form fields without firing React
+    // change events. To avoid "tap submit but nothing happens", read the
+    // current DOM values as the source of truth at submit-time.
+    const formEl = e.currentTarget;
+    const speakerNameInput = formEl.elements.namedItem(
+      "speakerName",
+    ) as HTMLInputElement | null;
+    const talkContextInput = formEl.elements.namedItem(
+      "talkContext",
+    ) as HTMLTextAreaElement | null;
+    const isOnBehalfInput = formEl.elements.namedItem(
+      "isOnBehalf",
+    ) as HTMLInputElement | null;
+    const submitterNameInput = formEl.elements.namedItem(
+      "submitterName",
+    ) as HTMLInputElement | null;
+
+    const speakerName = (speakerNameInput?.value ?? formData.speakerName).trim();
+    const talkContext = (talkContextInput?.value ?? formData.talkContext).trim();
+    const isOnBehalf = isOnBehalfInput?.checked ?? formData.isOnBehalf;
+    const submitterName =
+      (submitterNameInput?.value ?? formData.submitterName ?? "").trim();
+
+    if (!speakerName) {
+      setValidationError("Speaker name is required.");
       return;
     }
 
-    // Validate submitter name if submitting on behalf
-    if (formData.isOnBehalf && !formData.submitterName?.trim()) {
+    if (!talkContext) {
+      setValidationError("Talk context is required.");
       return;
     }
 
-    onSubmit(formData);
+    if (isOnBehalf && !submitterName) {
+      setValidationError(
+        "Your name (submitter) is required when submitting on behalf of someone else.",
+      );
+      return;
+    }
+
+    onSubmit({ speakerName, talkContext, isOnBehalf, submitterName });
   };
 
   const handleInputChange = (
@@ -44,13 +76,16 @@ export default function TalkSubmissionForm(
     }));
   };
 
-  const isFormValid = formData.speakerName.trim() &&
-    formData.talkContext.trim() &&
-    (!formData.isOnBehalf || formData.submitterName?.trim());
+  // Keep this purely for UI hints (do not use it to disable submit).
+  const isFormValid = Boolean(
+    formData.speakerName.trim() &&
+      formData.talkContext.trim() &&
+      (!formData.isOnBehalf || formData.submitterName?.trim()),
+  );
 
   return (
     <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded p-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* Speaker Name */}
         <div>
           <label
@@ -62,6 +97,8 @@ export default function TalkSubmissionForm(
           <input
             type="text"
             id="speakerName"
+            name="speakerName"
+            autoComplete="name"
             required
             value={formData.speakerName}
             onChange={(e) => handleInputChange("speakerName", e.target.value)}
@@ -81,6 +118,8 @@ export default function TalkSubmissionForm(
           </label>
           <textarea
             id="talkContext"
+            name="talkContext"
+            autoComplete="off"
             required
             rows={4}
             value={formData.talkContext}
@@ -96,6 +135,7 @@ export default function TalkSubmissionForm(
           <div className="flex items-center h-5">
             <input
               id="isOnBehalf"
+              name="isOnBehalf"
               type="checkbox"
               checked={formData.isOnBehalf}
               onChange={(e) =>
@@ -126,6 +166,8 @@ export default function TalkSubmissionForm(
             <input
               type="text"
               id="submitterName"
+              name="submitterName"
+              autoComplete="name"
               required={formData.isOnBehalf}
               value={formData.submitterName || ""}
               onChange={(e) =>
@@ -142,14 +184,16 @@ export default function TalkSubmissionForm(
         )}
 
         {/* Error Message */}
-        {error && (
+        {(validationError || error) && (
           <div className="bg-red-50 border border-[var(--error)] rounded p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <span className="text-error">⚠</span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-mono text-error">{error}</p>
+                <p className="text-sm font-mono text-error">
+                  {validationError || error}
+                </p>
               </div>
             </div>
           </div>
@@ -159,8 +203,13 @@ export default function TalkSubmissionForm(
         <div>
           <button
             type="submit"
-            disabled={isSubmitting || !isFormValid}
-            className="w-full flex justify-center py-3 px-6 border border-[var(--accent-primary)] rounded bg-[var(--accent-primary)] text-primary font-mono text-sm font-medium hover:bg-[var(--accent-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
+            aria-disabled={isSubmitting}
+            className={`w-full flex justify-center py-3 px-6 border border-[var(--accent-primary)] rounded font-mono text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed ${
+              isFormValid
+                ? "bg-[var(--accent-primary)] text-primary hover:bg-[var(--accent-secondary)]"
+                : "bg-[var(--bg-tertiary)] text-secondary"
+            }`}
           >
             {isSubmitting
               ? (
