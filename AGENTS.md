@@ -7,6 +7,11 @@ Detailed reference documentation for this project:
 - **[Val Town Platform](.context/knowledge/valtown.md)** - Runtime, triggers, standard library, SDK, best practices
 - **[Auto-Threading Feature Plan](.context/plans/autothread-feature.md)** - Gated implementation plan for Discord auto-threading
 
+TalkTriage (planned, not yet implemented):
+- **[TalkTriage Plan](.context/plans/talktriage.md)** - Gated implementation plan
+- **[TalkTriage PR/FAQ](docs/features/concepts/TALKTRIAGE-PRFAQ.md)** - Working backwards doc
+- **[TalkTriage Initial Feature Concept](.context/features/discord-native-review-pipeline.md)** - Earlier concept draft
+
 ## This Project: Talk Submission System
 
 ### Architecture
