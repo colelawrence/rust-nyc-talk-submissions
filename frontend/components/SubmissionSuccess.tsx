@@ -1,5 +1,6 @@
 /** @jsxImportSource https://esm.sh/v135/react@18.2.0 */
-import React from "https://esm.sh/v135/react@18.2.0";
+import React, { useEffect, useState } from "https://esm.sh/v135/react@18.2.0";
+import QRCode from "https://esm.sh/qrcode@1.5.3";
 import type { SubmissionResult } from "./App.tsx";
 
 interface SubmissionSuccessProps {
@@ -10,6 +11,34 @@ interface SubmissionSuccessProps {
 export default function SubmissionSuccess(
   { result, onReset }: SubmissionSuccessProps,
 ) {
+  const [qrSvg, setQrSvg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setQrSvg(null);
+
+    QRCode.toString(result.discordInviteLink, {
+      type: "svg",
+      margin: 1,
+      width: 180,
+      color: {
+        dark: "#2d3748", // --text-primary
+        light: "#ffffff",
+      },
+    })
+      .then((svg) => {
+        if (!cancelled) setQrSvg(svg);
+      })
+      .catch((err) => {
+        console.error("Failed to generate QR code:", err);
+        if (!cancelled) setQrSvg("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [result.discordInviteLink]);
+
   const copyInviteLink = async () => {
     try {
       await navigator.clipboard.writeText(result.discordInviteLink);
@@ -75,6 +104,30 @@ export default function SubmissionSuccess(
                 >
                   📋
                 </button>
+              </div>
+            </div>
+
+            {/* QR code (useful when the form is opened on desktop and you want to join from phone) */}
+            <div className="bg-white border border-[var(--border-default)] rounded p-4">
+              <p className="text-xs font-mono text-muted mb-3">
+                Scan to join on mobile:
+              </p>
+              <div className="flex items-center justify-center">
+                {qrSvg === null
+                  ? <p className="text-xs font-mono text-muted">Generating QR code…</p>
+                  : qrSvg
+                  ? (
+                    <div
+                      aria-label="Discord invite QR code"
+                      // QRCode.toString returns an <svg>...</svg> string
+                      dangerouslySetInnerHTML={{ __html: qrSvg }}
+                    />
+                  )
+                  : (
+                    <p className="text-xs font-mono text-muted">
+                      (Could not generate QR code)
+                    </p>
+                  )}
               </div>
             </div>
 
