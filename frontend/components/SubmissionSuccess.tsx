@@ -81,13 +81,13 @@ export default function SubmissionSuccess(
               className="font-heading text-2xl font-medium"
               style={{ color: "var(--text-primary)" }}
             >
-              Discord Discussion Channel
+              Join your private channel
             </h3>
           </div>
 
           <p className="font-mono text-sm text-secondary mb-4">
-            A dedicated Discord channel has been created for discussing your
-            talk proposal. Join the conversation with our organizers!
+            A private Discord channel has been created for your submission.
+            Join to discuss your talk proposal with our organizers.
           </p>
 
           <div className="space-y-3">
@@ -107,10 +107,10 @@ export default function SubmissionSuccess(
               </div>
             </div>
 
-            {/* QR code (useful when the form is opened on desktop and you want to join from phone) */}
+            {/* QR code (useful for quickly joining from another device, e.g. during an event) */}
             <div className="bg-white border border-[var(--border-default)] rounded p-4">
               <p className="text-xs font-mono text-muted mb-3">
-                Scan to join on mobile:
+                Scan to join your private channel:
               </p>
               <div className="flex items-center justify-center">
                 {qrSvg === null
@@ -139,7 +139,7 @@ export default function SubmissionSuccess(
                 rel="noopener noreferrer"
                 className="flex-1 bg-[var(--accent-primary)] text-primary px-4 py-2 rounded text-sm font-mono font-medium hover:bg-[var(--accent-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] text-center"
               >
-                Join Discord Channel
+                Join your private channel
               </a>
               <button
                 onClick={copyInviteLink}
