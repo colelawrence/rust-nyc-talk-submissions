@@ -43,6 +43,12 @@ export class AutothreadStore {
       PRIMARY KEY (channel_id, message_id)
     )`);
 
+    // Composite index for cooldown check query (channel_id, status, processed_at)
+    await sqlite.execute(
+      `CREATE INDEX IF NOT EXISTS idx_${this.tables.processed}_cooldown
+       ON ${this.tables.processed} (channel_id, status, processed_at)`,
+    );
+
     await sqlite.execute(`CREATE TABLE IF NOT EXISTS ${this.tables.stats} (
       channel_id TEXT NOT NULL,
       date TEXT NOT NULL,

@@ -41,6 +41,12 @@ async function initDatabase() {
     discord_invite_link TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Index for admin listing (ORDER BY created_at DESC)
+  await sqlite.execute(
+    `CREATE INDEX IF NOT EXISTS idx_${TABLE_NAME}_created_at ON ${TABLE_NAME} (created_at)`,
+  );
+
   console.log(`✅ [DB] Database initialization complete`);
 }
 
