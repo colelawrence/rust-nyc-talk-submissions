@@ -8,9 +8,16 @@ export interface DiscordConfig {
   inviteMaxAge: number;
 }
 
+export interface RateLimitConfig {
+  enabled: boolean;
+  windowSeconds: number;
+  maxRequests: number;
+}
+
 export interface RuntimeConfig {
   discord?: DiscordConfig;
   enableTestApi: boolean;
+  rateLimit: RateLimitConfig;
 }
 
 export function loadEnv(): RuntimeConfig {
@@ -34,6 +41,29 @@ export function loadEnv(): RuntimeConfig {
     throw new Error(
       `DISCORD_INVITE_MAX_AGE_SECONDS must be 0 or an integer between 1 and 604800 (7 days). Got: ${inviteMaxAgeStr}`
     );
+  }
+
+  // Parse and validate rate limit config
+  const rateLimitEnabledStr = Deno.env.get("RATE_LIMIT_ENABLED");
+  const rateLimitEnabled = rateLimitEnabledStr?.toLowerCase() === "false" ? false : true; // default: true
+  
+  const rateLimitWindowStr = Deno.env.get("RATE_LIMIT_WINDOW_SECONDS");
+  const rateLimitWindow = rateLimitWindowStr ? parseInt(rateLimitWindowStr, 10) : 900; // default: 900s (15 min)
+  
+  const rateLimitMaxStr = Deno.env.get("RATE_LIMIT_MAX");
+  const rateLimitMax = rateLimitMaxStr ? parseInt(rateLimitMaxStr, 10) : 10; // default: 10 requests
+  
+  if (rateLimitEnabled) {
+    if (isNaN(rateLimitWindow) || rateLimitWindow < 1) {
+      throw new Error(
+        `RATE_LIMIT_WINDOW_SECONDS must be a positive integer. Got: ${rateLimitWindowStr}`
+      );
+    }
+    if (isNaN(rateLimitMax) || rateLimitMax < 1) {
+      throw new Error(
+        `RATE_LIMIT_MAX must be a positive integer. Got: ${rateLimitMaxStr}`
+      );
+    }
   }
 
   console.log(
@@ -70,6 +100,9 @@ export function loadEnv(): RuntimeConfig {
   console.log(
     `⏰ [Config] Invite Max Age: ${inviteMaxAge === 0 ? "Never expires" : `${inviteMaxAge}s (${Math.floor(inviteMaxAge / 86400)}d ${Math.floor((inviteMaxAge % 86400) / 3600)}h)`}`,
   );
+  console.log(
+    `🚦 [Config] Rate Limiting: ${rateLimitEnabled ? `✅ Enabled (${rateLimitMax} requests per ${rateLimitWindow}s)` : "⚪ Disabled"}`,
+  );
 
   const isFullyConfigured = botToken && guildId && organizersChannelId;
 
@@ -96,5 +129,10 @@ export function loadEnv(): RuntimeConfig {
   return {
     discord,
     enableTestApi: testApiEnabled?.toLowerCase() === "true",
+    rateLimit: {
+      enabled: rateLimitEnabled,
+      windowSeconds: rateLimitWindow,
+      maxRequests: rateLimitMax,
+    },
   };
 }

@@ -16,6 +16,7 @@ import {
   testNotification,
   welcomeMessage,
 } from "./messages.ts";
+import { RateLimiter, rateLimitMiddleware } from "./rate-limit.ts";
 import autothreadDebug from "./autothread-debug.http.ts";
 
 const app = new Hono();
@@ -55,6 +56,12 @@ await initDatabase();
 const config = loadEnv();
 const discord = makeDiscordService(config.discord);
 
+// Initialize rate limiter
+const rateLimiter = new RateLimiter({
+  maxRequests: config.rateLimit.maxRequests,
+  windowSeconds: config.rateLimit.windowSeconds,
+});
+
 console.log(
   `🚀 [System] Talk submission system ready! Discord: ${
     config.discord ? "Enabled" : "Placeholder mode"
@@ -69,7 +76,8 @@ app.get("/", async (c) => {
   return c.html(html);
 });
 
-app.post("/api/submissions", async (c) => {
+// Extract submission handler to avoid duplication with middleware
+const submissionHandler = async (c: any) => {
   console.log(`🎯 [API] New talk submission received`);
 
   const body = await c.req.json().catch(() => null);
@@ -212,14 +220,21 @@ app.post("/api/submissions", async (c) => {
   console.log(`📊 [API] Final result:`);
   console.log(`  Submission ID: ${submissionId}`);
   console.log(`  Discord Channel ID: ${channelId}`);
-  console.log(`  Discord Invite: ${inviteLink}`);
+  console.log(`  Discord Invite: (redacted)`);
 
   return c.json({
     success: true,
     submissionId,
     discordInviteLink: inviteLink,
   });
-});
+};
+
+// Wire rate limiting conditionally
+if (config.rateLimit.enabled) {
+  app.post("/api/submissions", rateLimitMiddleware(rateLimiter), submissionHandler);
+} else {
+  app.post("/api/submissions", submissionHandler);
+}
 
 app.get("/api/submissions", requireAdmin, async (c) => {
   // Parse and validate query params
