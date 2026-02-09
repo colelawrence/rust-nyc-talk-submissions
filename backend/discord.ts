@@ -157,15 +157,31 @@ class RealDiscordService implements DiscordService {
     channelId: string,
     content: string,
   ): Promise<{ id: string }> {
+    // Discord hard limit: 2000 characters in message content.
+    // Truncate defensively so user-provided talk context cannot cause a hard failure.
+    const DISCORD_MESSAGE_MAX = 2000;
+
+    let safeContent = content;
+    if (safeContent.length > DISCORD_MESSAGE_MAX) {
+      console.warn(
+        `⚠️ [Discord] Message content too long (${safeContent.length}), truncating to ${DISCORD_MESSAGE_MAX} chars`,
+      );
+      safeContent = safeContent.slice(0, DISCORD_MESSAGE_MAX - 1) + "…";
+    }
+
     console.log(
-      `💬 [Discord] Sending message to channel: ${channelId} (${content.length} chars)`,
+      `💬 [Discord] Sending message to channel: ${channelId} (${safeContent.length} chars)`,
     );
 
     const message = await this.request<{ id: string; timestamp: string }>(
       `/channels/${channelId}/messages`,
       {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content: safeContent,
+          // Prevent user-provided text from pinging @everyone / roles / users.
+          allowed_mentions: { parse: [] },
+        }),
       },
     );
 

@@ -98,7 +98,7 @@ export class AutothreadStore {
          error_count = ?,
          last_error = ?
        WHERE id = ?`,
-      [status, iterations, threadsCreated, errorCount, lastError, runId],
+      [status, iterations, threadsCreated, errorCount, lastError, runId.toString()],
     );
   }
 
@@ -123,7 +123,7 @@ export class AutothreadStore {
       `INSERT INTO ${this.tables.events} (run_id, ts, level, event, channel_id, message_id, details_json)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        runId,
+        runId ? runId.toString() : null,
         event.timestamp,
         event.level,
         event.event,
@@ -137,7 +137,7 @@ export class AutothreadStore {
   async getRunEvents(runId: bigint): Promise<Record<string, unknown>[]> {
     const result = await sqlite.execute(
       `SELECT * FROM ${this.tables.events} WHERE run_id = ? ORDER BY id`,
-      [runId],
+      [runId.toString()],
     );
     return result.rows as Record<string, unknown>[];
   }
@@ -149,8 +149,10 @@ export class AutothreadStore {
       [channelId],
     );
     if (result.rows.length === 0) return null;
-    return (result.rows[0] as { last_message_id: string | null })
-      .last_message_id;
+    const row = result.rows[0] as unknown as {
+      last_message_id?: string | null;
+    };
+    return row.last_message_id ?? null;
   }
 
   async updateChannelState(
@@ -243,7 +245,10 @@ export class AutothreadStore {
        WHERE channel_id = ? AND status = 'created' AND processed_at > ?`,
       [channelId, cutoff],
     );
-    const count = (result.rows[0] as { count: number }).count;
+    const row = result.rows[0] as unknown as {
+      count?: number | string | bigint;
+    };
+    const count = Number(row.count ?? 0);
     return count >= maxThreads;
   }
 

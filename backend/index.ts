@@ -10,6 +10,7 @@ import { safe } from "./errors.ts";
 import {
   organizersNotification,
   sanitizeChannelName,
+  talkContextMessages,
   testMessage,
   testNotification,
   welcomeMessage,
@@ -64,23 +65,70 @@ app.get("/", async (c) => {
 app.post("/api/submissions", async (c) => {
   console.log(`🎯 [API] New talk submission received`);
 
-  const body = await c.req.json();
-  const { speakerName, talkContext, isOnBehalf, submitterName } = body;
+  const body = await c.req.json().catch(() => null);
+
+  if (!body || typeof body !== "object") {
+    console.error(`❌ [API] Invalid JSON body`);
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const speakerName =
+    typeof (body as any).speakerName === "string"
+      ? (body as any).speakerName.trim()
+      : "";
+  const talkContext =
+    typeof (body as any).talkContext === "string"
+      ? (body as any).talkContext.trim()
+      : "";
+  const isOnBehalfRaw = (body as any).isOnBehalf;
+  const submitterName =
+    typeof (body as any).submitterName === "string"
+      ? (body as any).submitterName.trim()
+      : "";
 
   console.log(`📋 [API] Submission details:`);
   console.log(`  Speaker: "${speakerName}"`);
-  console.log(`  Context length: ${talkContext?.length || 0} characters`);
-  console.log(`  On behalf: ${isOnBehalf}`);
-  if (isOnBehalf && submitterName) {
+  console.log(`  Context length: ${talkContext.length} characters`);
+  console.log(`  On behalf: ${isOnBehalfRaw}`);
+  if (isOnBehalfRaw === true && submitterName) {
     console.log(`  Submitter: "${submitterName}"`);
   }
 
-  if (!speakerName || !talkContext || typeof isOnBehalf !== "boolean") {
+  if (!speakerName || !talkContext || typeof isOnBehalfRaw !== "boolean") {
     console.error(`❌ [API] Validation failed - missing required fields`);
     return c.json({ error: "Missing required fields" }, 400);
   }
 
-  if (isOnBehalf && !submitterName?.trim()) {
+  const isOnBehalf = isOnBehalfRaw;
+
+  const MAX_NAME_CHARS = 120;
+  const MAX_CONTEXT_CHARS = 8000;
+
+  if (speakerName.length > MAX_NAME_CHARS) {
+    return c.json(
+      { error: `Speaker name is too long (max ${MAX_NAME_CHARS} characters)` },
+      400,
+    );
+  }
+
+  if (submitterName.length > MAX_NAME_CHARS) {
+    return c.json(
+      {
+        error:
+          `Submitter name is too long (max ${MAX_NAME_CHARS} characters)`,
+      },
+      400,
+    );
+  }
+
+  if (talkContext.length > MAX_CONTEXT_CHARS) {
+    return c.json(
+      { error: `Talk context is too long (max ${MAX_CONTEXT_CHARS} characters)` },
+      400,
+    );
+  }
+
+  if (isOnBehalf && !submitterName) {
     console.error(
       `❌ [API] Validation failed - submitter name required when submitting on behalf`,
     );
@@ -104,9 +152,7 @@ app.post("/api/submissions", async (c) => {
 
   console.log(`🤖 [API] Starting Discord integration workflow`);
 
-  const channelName = `nodate-${submissionId}-${
-    sanitizeChannelName(speakerName)
-  }`;
+  const channelName = sanitizeChannelName(`nodate-${submissionId}-${speakerName}`);
   const channelId = await discord.createChannel(
     channelName,
     config.discord?.categoryId,
@@ -118,10 +164,18 @@ app.post("/api/submissions", async (c) => {
     "welcome",
     discord.sendMessage(
       channelId,
-      welcomeMessage({ speakerName, talkContext, isOnBehalf, submitterName }),
+      welcomeMessage({ speakerName, isOnBehalf, submitterName }),
     ),
     { swallow: true },
   );
+
+  for (const msg of talkContextMessages(talkContext)) {
+    await safe(
+      "talk-context",
+      discord.sendMessage(channelId, msg),
+      { swallow: true },
+    );
+  }
 
   if (config.discord?.organizersChannelId) {
     await safe(
@@ -164,7 +218,7 @@ app.get("/api/submissions", async (c) => {
   const submissions = await sqlite.execute(
     `SELECT * FROM ${TABLE_NAME} ORDER BY created_at DESC`,
   );
-  return c.json(submissions);
+  return c.json(submissions.rows);
 });
 
 app.get("/api/autothread/health", async (c) => {

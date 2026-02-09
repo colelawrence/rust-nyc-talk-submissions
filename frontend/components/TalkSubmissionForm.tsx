@@ -99,6 +99,7 @@ export default function TalkSubmissionForm(
             id="speakerName"
             name="speakerName"
             autoComplete="name"
+            maxLength={120}
             required
             value={formData.speakerName}
             onChange={(e) => handleInputChange("speakerName", e.target.value)}
@@ -120,6 +121,7 @@ export default function TalkSubmissionForm(
             id="talkContext"
             name="talkContext"
             autoComplete="off"
+            maxLength={8000}
             required
             rows={4}
             value={formData.talkContext}
@@ -168,6 +170,7 @@ export default function TalkSubmissionForm(
               id="submitterName"
               name="submitterName"
               autoComplete="name"
+              maxLength={120}
               required={formData.isOnBehalf}
               value={formData.submitterName || ""}
               onChange={(e) =>
