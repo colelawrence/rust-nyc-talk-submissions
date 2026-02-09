@@ -2,7 +2,7 @@
  * Retention Cron Job
  *
  * Cleans up old records from non-critical tables to prevent unbounded growth.
- * Uses batched deletes with transactions and graceful lock failure handling.
+ * Uses batched deletes and graceful lock failure handling.
  *
  * Environment Variables:
  * - AUTOTHREAD_LOG_RETENTION_DAYS: Days to retain autothread logs (default: 30, 0 = disabled)
@@ -31,7 +31,7 @@ interface RetentionTask {
 }
 
 /**
- * Execute a single batched delete with transaction and lock retry
+ * Execute a single batched delete
  * @returns Number of rows deleted, or null if lock failed
  */
 async function batchDelete(
@@ -41,8 +41,6 @@ async function batchDelete(
   batchSize: number,
 ): Promise<number | null> {
   try {
-    await sqlite.execute("BEGIN IMMEDIATE");
-
     const result = await sqlite.execute(
       `DELETE FROM ${table} WHERE rowid IN (
          SELECT rowid FROM ${table} WHERE ${column} < ? LIMIT ?
@@ -50,20 +48,8 @@ async function batchDelete(
       [cutoffValue, batchSize],
     );
 
-    await sqlite.execute("COMMIT");
-
     return result.rowsAffected;
   } catch (error) {
-    // Rollback on error
-    try {
-      await sqlite.execute("ROLLBACK");
-    } catch (rollbackError) {
-      console.error(
-        `💥 [Retention] Rollback failed for ${table}:`,
-        rollbackError,
-      );
-    }
-
     // Check if it's a lock error
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
@@ -125,8 +111,8 @@ export default async function () {
   console.log(`🚀 [Retention] Cron job started`);
 
   try {
-    // Set busy timeout to handle contention
-    await sqlite.execute("PRAGMA busy_timeout = 30000");
+    // Note: Val Town sqlite API rejects PRAGMA statements (e.g. busy_timeout).
+    // We handle lock errors by skipping the affected table for this run.
 
     // Load config (catch and log errors instead of throwing)
     let config;

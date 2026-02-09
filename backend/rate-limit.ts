@@ -26,7 +26,7 @@ export interface RateLimitResult {
 /**
  * SQLite-backed rate limiter with sliding window
  * - Stores request timestamps as JSON array
- * - Uses BEGIN IMMEDIATE transactions with retry/backoff
+ * - Retries on SQLITE_BUSY/lock errors with backoff (best-effort)
  * - Fails open on persistent errors
  */
 export class RateLimiter {
@@ -49,9 +49,8 @@ export class RateLimiter {
     if (this.initialized) return;
 
     try {
-      // Set busy timeout to handle contention
-      await sqlite.execute("PRAGMA busy_timeout = 5000");
-
+      // Note: Val Town's sqlite API rejects PRAGMA statements (e.g. busy_timeout).
+      // We rely on retry/backoff on SQLITE_BUSY instead.
       await sqlite.execute(`CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
         key TEXT PRIMARY KEY,
         request_times TEXT NOT NULL,
@@ -108,7 +107,7 @@ export class RateLimiter {
   }
 
   /**
-   * Execute rate limit check within a transaction
+   * Execute rate limit check (best-effort; not transactional in Val Town sqlite API)
    */
   private async checkWithTransaction(
     key: string,
@@ -116,10 +115,7 @@ export class RateLimiter {
     windowStart: number,
   ): Promise<RateLimitResult> {
     try {
-      // Start immediate transaction to acquire write lock
-      await sqlite.execute("BEGIN IMMEDIATE");
-
-      // Fetch current state
+      // Fetch current state (Val Town sqlite API does not support explicit BEGIN/COMMIT)
       const result = await sqlite.execute(
         `SELECT request_times FROM ${TABLE_NAME} WHERE key = ?`,
         [key],
@@ -167,8 +163,6 @@ export class RateLimiter {
           );
         }
 
-        await sqlite.execute("COMMIT");
-
         return {
           allowed: false,
           retryAfterSeconds: Math.max(1, retryAfterSeconds),
@@ -191,16 +185,8 @@ export class RateLimiter {
         );
       }
 
-      await sqlite.execute("COMMIT");
-
       return { allowed: true };
     } catch (error) {
-      // Rollback on any error
-      try {
-        await sqlite.execute("ROLLBACK");
-      } catch (rollbackError) {
-        console.error(`💥 [RateLimit] Rollback failed:`, rollbackError);
-      }
       throw error;
     }
   }
