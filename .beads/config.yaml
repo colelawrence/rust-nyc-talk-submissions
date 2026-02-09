@@ -1,0 +1,8 @@
+# Beads Project Configuration
+
+# Keep IDs recognizable in this repo.
+issue_prefix: talk
+
+# Reasonable defaults; can be overridden per issue.
+default_priority: 2
+default_type: task
