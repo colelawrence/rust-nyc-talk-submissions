@@ -89,6 +89,14 @@ These variables are used for testing/debugging without affecting production chan
 - `DISCORD_TEST_CATEGORY_ID` (optional): Category ID for organizing test channels.
 - `DISCORD_TEST_ORGANIZERS_CHANNEL_ID` (optional): Channel ID for test announcements.
 
+**Testing via the talk submission form:**
+
+If the speaker name contains a test marker matching `/\W\s*test\s*\W/i` (e.g. `Jane Doe (test)`), the submission will be routed to the test category + test organizers channel **instead of production**.
+
+- Requires `ENABLE_TEST_API=true`
+- Requires both `DISCORD_TEST_CATEGORY_ID` and `DISCORD_TEST_ORGANIZERS_CHANNEL_ID`
+- If test mode isn't enabled/configured, the submission will be rejected (no DB write / no Discord side effects)
+
 **Testing the Discord Integration (`POST /api/discord/test`):**
 
 Requires both `ENABLE_TEST_API=true` and `ADMIN_TOKEN`.
