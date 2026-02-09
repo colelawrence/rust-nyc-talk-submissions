@@ -5,6 +5,7 @@ export interface DiscordConfig {
   categoryId?: string;
   testCategoryId?: string;
   testOrganizersChannelId?: string;
+  inviteMaxAge: number;
 }
 
 export interface RuntimeConfig {
@@ -24,6 +25,16 @@ export function loadEnv(): RuntimeConfig {
     "DISCORD_TEST_ORGANIZERS_CHANNEL_ID",
   );
   const testApiEnabled = Deno.env.get("ENABLE_TEST_API");
+  
+  // Parse and validate invite max age (default: 7 days)
+  const inviteMaxAgeStr = Deno.env.get("DISCORD_INVITE_MAX_AGE_SECONDS");
+  const inviteMaxAge = inviteMaxAgeStr ? parseInt(inviteMaxAgeStr, 10) : 604800;
+  
+  if (isNaN(inviteMaxAge) || (inviteMaxAge !== 0 && (inviteMaxAge < 1 || inviteMaxAge > 604800))) {
+    throw new Error(
+      `DISCORD_INVITE_MAX_AGE_SECONDS must be 0 or an integer between 1 and 604800 (7 days). Got: ${inviteMaxAgeStr}`
+    );
+  }
 
   console.log(
     `🤖 [Config] Bot Token: ${botToken ? "✅ Present" : "❌ Missing"}`,
@@ -56,6 +67,9 @@ export function loadEnv(): RuntimeConfig {
       testApiEnabled?.toLowerCase() === "true" ? "✅ Enabled" : "⚪ Disabled"
     }`,
   );
+  console.log(
+    `⏰ [Config] Invite Max Age: ${inviteMaxAge === 0 ? "Never expires" : `${inviteMaxAge}s (${Math.floor(inviteMaxAge / 86400)}d ${Math.floor((inviteMaxAge % 86400) / 3600)}h)`}`,
+  );
 
   const isFullyConfigured = botToken && guildId && organizersChannelId;
 
@@ -69,6 +83,7 @@ export function loadEnv(): RuntimeConfig {
       categoryId,
       testCategoryId,
       testOrganizersChannelId,
+      inviteMaxAge,
     };
     console.log(`✅ [Config] Full Discord integration enabled`);
   } else {

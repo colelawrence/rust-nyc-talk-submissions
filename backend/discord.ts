@@ -141,7 +141,7 @@ class RealDiscordService implements DiscordService {
       {
         method: "POST",
         body: JSON.stringify({
-          max_age: 0,
+          max_age: this.config.inviteMaxAge,
           max_uses: 0,
           unique: true,
         }),
@@ -149,7 +149,7 @@ class RealDiscordService implements DiscordService {
     );
 
     const inviteUrl = `https://discord.gg/${invite.code}`;
-    console.log(`✅ [Discord] Invite created: ${inviteUrl}`);
+    console.log(`✅ [Discord] Invite created (code redacted for security)`);
     return inviteUrl;
   }
 
