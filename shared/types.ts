@@ -29,3 +29,10 @@ export interface DiscordConfig {
   organizersChannelId: string;
   categoryId?: string;
 }
+
+export interface SubmissionsResponse {
+  data: TalkSubmission[];
+  total: number;
+  limit: number;
+  offset: number;
+}

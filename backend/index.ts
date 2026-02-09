@@ -222,10 +222,45 @@ app.post("/api/submissions", async (c) => {
 });
 
 app.get("/api/submissions", requireAdmin, async (c) => {
-  const submissions = await sqlite.execute(
-    `SELECT * FROM ${TABLE_NAME} ORDER BY created_at DESC`,
+  // Parse and validate query params
+  const limitParam = c.req.query("limit");
+  const offsetParam = c.req.query("offset");
+
+  const limit = limitParam ? parseInt(limitParam, 10) : 50;
+  const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
+  // Validate limit: must be 1-1000
+  if (isNaN(limit) || limit < 1 || limit > 1000) {
+    return c.json({ error: "limit must be between 1 and 1000" }, 400);
+  }
+
+  // Validate offset: must be >= 0
+  if (isNaN(offset) || offset < 0) {
+    return c.json({ error: "offset must be non-negative integer" }, 400);
+  }
+
+  // Two-query pattern: COUNT(*) then SELECT with LIMIT/OFFSET
+  const countResult = await sqlite.execute(
+    `SELECT COUNT(*) as count FROM ${TABLE_NAME}`,
   );
-  return c.json(submissions.rows);
+  
+  // Extract total from Row object
+  const total = Number(countResult.rows[0]?.count ?? 0);
+
+  const dataResult = await sqlite.execute(
+    `SELECT * FROM ${TABLE_NAME} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    [limit, offset],
+  );
+
+  // Map rows to plain objects for JSON-safe response
+  const data = dataResult.rows.map((r) => ({ ...r }));
+
+  return c.json({
+    data,
+    total,
+    limit,
+    offset,
+  });
 });
 
 app.get("/api/autothread/health", async (c) => {
