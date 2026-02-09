@@ -153,6 +153,44 @@ const submissionHandler = async (c: any) => {
     }, 400);
   }
 
+  const isTestSubmission = /\W\s*test\s*\W/i.test(speakerName);
+
+  if (isTestSubmission) {
+    console.log(
+      `🧪 [API] Test submission marker detected in speaker name; using test Discord routing`,
+    );
+
+    if (!config.enableTestApi) {
+      console.warn(
+        `⚠️ [API] Test submission requested but ENABLE_TEST_API is disabled`,
+      );
+      return c.json({ error: "Test submissions are disabled" }, 403);
+    }
+
+    if (!config.discord) {
+      console.warn(
+        `⚠️ [API] Test submission requested but Discord integration is not configured`,
+      );
+      return c.json(
+        { error: "Test submissions are not available (Discord not configured)" },
+        503,
+      );
+    }
+
+    if (!config.discord.testCategoryId || !config.discord.testOrganizersChannelId) {
+      console.warn(
+        `⚠️ [API] Test submission requested but DISCORD_TEST_CATEGORY_ID and/or DISCORD_TEST_ORGANIZERS_CHANNEL_ID is not configured`,
+      );
+      return c.json(
+        {
+          error:
+            "Test submissions are not available (missing DISCORD_TEST_CATEGORY_ID or DISCORD_TEST_ORGANIZERS_CHANNEL_ID)",
+        },
+        503,
+      );
+    }
+  }
+
   console.log(`💾 [API] Inserting submission into database`);
 
   const result = await sqlite.execute(
@@ -167,10 +205,14 @@ const submissionHandler = async (c: any) => {
 
   console.log(`🤖 [API] Starting Discord integration workflow`);
 
+  const discordCategoryId = isTestSubmission
+    ? config.discord?.testCategoryId
+    : config.discord?.categoryId;
+
   const channelName = sanitizeChannelName(`nodate-${submissionId}-${speakerName}`);
   const channelId = await discord.createChannel(
     channelName,
-    config.discord?.categoryId,
+    discordCategoryId,
   );
 
   const inviteLink = await discord.createInvite(channelId);
@@ -192,11 +234,15 @@ const submissionHandler = async (c: any) => {
     );
   }
 
-  if (config.discord?.organizersChannelId) {
+  const organizersChannelId = isTestSubmission
+    ? config.discord?.testOrganizersChannelId
+    : config.discord?.organizersChannelId;
+
+  if (organizersChannelId) {
     await safe(
-      "organizers",
+      isTestSubmission ? "test-organizers" : "organizers",
       discord.sendMessage(
-        config.discord.organizersChannelId,
+        organizersChannelId,
         organizersNotification({
           speakerName,
           talkContext,
