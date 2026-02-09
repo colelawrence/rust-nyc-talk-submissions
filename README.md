@@ -44,68 +44,83 @@ A complete talk submission system with Discord integration for event organizers.
 
 ### Environment Variables
 
-You'll need to set up the following environment variables for Discord
-integration:
+#### Discord integration
 
 - `DISCORD_BOT_TOKEN`: Your Discord bot token
 - `DISCORD_GUILD_ID`: Your Discord server ID
-- `DISCORD_ORGANIZERS_CHANNEL_ID`: Channel ID where organizer notifications are
-  sent
+- `DISCORD_ORGANIZERS_CHANNEL_ID`: Channel ID where organizer notifications are sent
 - `DISCORD_CATEGORY_ID` (optional): Category ID for organizing talk channels
-- `DISCORD_TEST_CATEGORY_ID` (optional): Category ID for organizing test
-  channels
-- `DISCORD_TEST_ORGANIZERS_CHANNEL_ID` (optional): Channel ID for test
-  announcements
+- `DISCORD_INVITE_MAX_AGE_SECONDS` (optional): Invite expiration in seconds.
+  - Default: `604800` (7 days)
+  - Set to `0` for never expires
+  - Valid: `0` or `1..604800`
+
+#### Admin/auth (required for admin/test endpoints)
+
+- `ADMIN_TOKEN`: Required for:
+  - `GET /api/submissions`
+  - `POST /api/discord/test`
+  - `/api/autothread/debug/*`
+
+  Use a cryptographically-random token (>=32 chars), e.g.:
+
+  ```bash
+  openssl rand -hex 32
+  ```
+
+  Send as: `Authorization: Bearer $ADMIN_TOKEN`
+
+#### Rate limiting (abuse control)
+
+- `RATE_LIMIT_ENABLED` (optional): Default `true`. Set to `false` to disable.
+- `RATE_LIMIT_WINDOW_SECONDS` (optional): Default `900` (15 minutes).
+- `RATE_LIMIT_MAX` (optional): Default `10` requests per window.
+
+#### Retention (cron cleanup)
+
+- `AUTOTHREAD_LOG_RETENTION_DAYS` (optional): Default `30`. Set to `0` to disable.
+- `RATE_LIMIT_RETENTION_DAYS` (optional): Default `30`. Set to `0` to disable.
 
 #### Testing Environment Variables
 
-The following environment variables are used for testing the Discord integration
-without affecting production channels:
+These variables are used for testing/debugging without affecting production channels:
 
-- `ENABLE_TEST_API`: Set to "true" to enable the test API endpoint (required for
-  testing)
-- `DISCORD_TEST_CATEGORY_ID`: Separate category for test channels to keep them
-  organized
-- `DISCORD_TEST_ORGANIZERS_CHANNEL_ID`: Separate channel for test notifications
-  to avoid spamming production organizers
+- `ENABLE_TEST_API`: Set to "true" to enable debug/test endpoints.
+- `DISCORD_TEST_CATEGORY_ID` (optional): Category ID for organizing test channels.
+- `DISCORD_TEST_ORGANIZERS_CHANNEL_ID` (optional): Channel ID for test announcements.
 
-**Testing the Discord Integration:**
+**Testing the Discord Integration (`POST /api/discord/test`):**
+
+Requires both `ENABLE_TEST_API=true` and `ADMIN_TOKEN`.
 
 ```bash
 curl -X POST https://rustnyc-talks.val.run/api/discord/test \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"channelName": "my-test-channel", "firstMessage": "Hello from test endpoint!"}'
 ```
 
 **Parameters:**
 
-- `channelName` (required): Name for the test channel (will be sanitized for
-  Discord)
+- `channelName` (required): Name for the test channel (will be sanitized for Discord)
 - `firstMessage` (required): First message to send to the channel
 
-This will create a test channel with the specified name, send the first message,
-and return an invite link. If test environment variables are configured, it will
-also notify the test organizers channel.
+This will create a test channel, send the first message, and return an invite link.
 
-**Testing Discord Invite Creation Directly:**
-
-You can also test the Discord invite creation process directly using Discord's
-API:
+**Testing Discord Invite Creation Directly (Discord API):**
 
 ```bash
 curl -X POST https://discord.com/api/v10/channels/CHANNEL_ID/invites \
   -H "Authorization: Bot YOUR_BOT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "max_age": 0,
+    "max_age": 604800,
     "max_uses": 0,
     "unique": true
   }'
 ```
 
-Replace `CHANNEL_ID` with an existing channel ID and `YOUR_BOT_TOKEN` with your
-Discord bot token. This matches exactly how the bot creates invitation links
-internally.
+Use `max_age: 0` for never-expiring invites.
 
 ### Discord Bot Setup
 
@@ -122,11 +137,12 @@ internally.
 The system uses SQLite with the following schema:
 
 ```sql
-CREATE TABLE talk_submissions_1 (
+CREATE TABLE talk_submissions_3 (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   speaker_name TEXT NOT NULL,
   talk_context TEXT NOT NULL,
   is_on_behalf BOOLEAN NOT NULL,
+  submitter_name TEXT,
   discord_channel_id TEXT,
   discord_invite_link TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -135,10 +151,14 @@ CREATE TABLE talk_submissions_1 (
 
 ## API Endpoints
 
-- `POST /api/submissions` - Submit a new talk proposal
-- `GET /api/submissions` - Get all submissions (admin)
-- `POST /api/discord/test` - Test Discord integration (creates test channel and
-  sends message)
+- `POST /api/submissions` — Submit a new talk proposal.
+  - Rate limited when enabled (HTTP 429 + `Retry-After` header)
+- `GET /api/submissions?limit=50&offset=0` — List submissions (admin-only).
+  - Requires `Authorization: Bearer $ADMIN_TOKEN`
+  - Returns `{ data, total, limit, offset }`
+- `POST /api/discord/test` — Test Discord integration (creates a test channel and sends a message).
+  - Requires `ENABLE_TEST_API=true`
+  - Requires `Authorization: Bearer $ADMIN_TOKEN`
 
 ## Discord Integration Status
 
@@ -156,7 +176,7 @@ Discord integration process:
 - 🔍 Environment variable checks on startup
 - 🎯 API request tracking with submission details
 - 🔧 Discord channel creation with API responses
-- 🔗 Invite link generation with full details
+- 🔗 Invite link generation (invite code redacted in logs)
 - 📢 Organizer notifications with message content
 - 💥 Detailed error logging with stack traces and specific Discord error codes
 - 📊 Final result summaries
