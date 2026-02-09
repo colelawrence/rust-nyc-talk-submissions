@@ -5,6 +5,7 @@ import {
 } from "https://esm.town/v/std/utils@85-main/index.ts";
 import { sqlite } from "https://esm.town/v/stevekrouse/sqlite";
 import { loadEnv } from "./config.ts";
+import { requireAdmin } from "./auth.ts";
 import { makeDiscordService } from "./discord.ts";
 import { safe } from "./errors.ts";
 import {
@@ -214,7 +215,7 @@ app.post("/api/submissions", async (c) => {
   });
 });
 
-app.get("/api/submissions", async (c) => {
+app.get("/api/submissions", requireAdmin, async (c) => {
   const submissions = await sqlite.execute(
     `SELECT * FROM ${TABLE_NAME} ORDER BY created_at DESC`,
   );
@@ -248,7 +249,7 @@ app.get("/api/autothread/health", async (c) => {
   }
 });
 
-app.post("/api/discord/test", async (c) => {
+app.post("/api/discord/test", requireAdmin, async (c) => {
   console.log(`🧪 [Test] Discord test endpoint called`);
 
   if (!config.enableTestApi) {

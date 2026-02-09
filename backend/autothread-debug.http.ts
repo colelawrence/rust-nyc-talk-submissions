@@ -12,6 +12,7 @@
 import { Hono } from "https://esm.sh/hono@3.11.7";
 import { loadEnv } from "./config.ts";
 import { makeDiscordService } from "./discord.ts";
+import { requireAdmin } from "./auth.ts";
 import {
   runAutothread,
   AutothreadStore,
@@ -31,43 +32,23 @@ import type {
 
 const app = new Hono();
 
-// Admin authentication middleware
-function requireAdmin(req: Request): Response | null {
-  const adminToken = Deno.env.get("ADMIN_TOKEN");
+// Feature toggle check - runs before auth
+app.use("*", async (c, next) => {
   const testApiEnabled =
     Deno.env.get("ENABLE_TEST_API")?.toLowerCase() === "true";
 
   if (!testApiEnabled) {
-    return new Response(
-      JSON.stringify({ error: "Debug API disabled. Set ENABLE_TEST_API=true" }),
-      { status: 503, headers: { "Content-Type": "application/json" } },
+    return c.json(
+      { error: "Debug API disabled. Set ENABLE_TEST_API=true" },
+      503
     );
   }
 
-  if (!adminToken) {
-    return new Response(
-      JSON.stringify({ error: "ADMIN_TOKEN not configured" }),
-      { status: 503, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  const auth = req.headers.get("Authorization");
-  if (auth !== `Bearer ${adminToken}`) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  return null;
-}
-
-// Apply auth to all routes
-app.use("*", async (c, next) => {
-  const authError = requireAdmin(c.req.raw);
-  if (authError) return authError;
   await next();
 });
+
+// Admin authentication - uses shared middleware
+app.use("*", requireAdmin);
 
 // Error handler
 app.onError((err, c) => {
