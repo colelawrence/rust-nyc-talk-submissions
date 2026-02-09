@@ -8,6 +8,11 @@ import { sqlite } from "https://esm.town/v/stevekrouse/sqlite";
 import type { Namespace, TableNames, RunEvent } from "./types.ts";
 import { getTableNames } from "./types.ts";
 
+function toSqliteTimestamp(date: Date): string {
+  // Matches SQLite CURRENT_TIMESTAMP format: "YYYY-MM-DD HH:MM:SS" (UTC)
+  return date.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+}
+
 export class AutothreadStore {
   public readonly tables: TableNames;
 
@@ -239,7 +244,7 @@ export class AutothreadStore {
     windowMs: number,
     maxThreads: number,
   ): Promise<boolean> {
-    const cutoff = new Date(Date.now() - windowMs).toISOString();
+    const cutoff = toSqliteTimestamp(new Date(Date.now() - windowMs));
     const result = await sqlite.execute(
       `SELECT COUNT(*) as count FROM ${this.tables.processed}
        WHERE channel_id = ? AND status = 'created' AND processed_at > ?`,
