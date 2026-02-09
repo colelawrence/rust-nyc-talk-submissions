@@ -14,10 +14,16 @@ export interface RateLimitConfig {
   maxRequests: number;
 }
 
+export interface RetentionConfig {
+  autothreadLogRetentionDays: number;
+  rateLimitRetentionDays: number;
+}
+
 export interface RuntimeConfig {
   discord?: DiscordConfig;
   enableTestApi: boolean;
   rateLimit: RateLimitConfig;
+  retention: RetentionConfig;
 }
 
 export function loadEnv(): RuntimeConfig {
@@ -104,6 +110,36 @@ export function loadEnv(): RuntimeConfig {
     `🚦 [Config] Rate Limiting: ${rateLimitEnabled ? `✅ Enabled (${rateLimitMax} requests per ${rateLimitWindow}s)` : "⚪ Disabled"}`,
   );
 
+  // Parse and validate retention config
+  const autothreadLogRetentionStr = Deno.env.get("AUTOTHREAD_LOG_RETENTION_DAYS");
+  const autothreadLogRetentionDays = autothreadLogRetentionStr 
+    ? parseInt(autothreadLogRetentionStr, 10) 
+    : 30; // default: 30 days
+  
+  const rateLimitRetentionStr = Deno.env.get("RATE_LIMIT_RETENTION_DAYS");
+  const rateLimitRetentionDays = rateLimitRetentionStr 
+    ? parseInt(rateLimitRetentionStr, 10) 
+    : 30; // default: 30 days
+
+  if (isNaN(autothreadLogRetentionDays) || autothreadLogRetentionDays < 0) {
+    throw new Error(
+      `AUTOTHREAD_LOG_RETENTION_DAYS must be 0 or a positive integer. Got: ${autothreadLogRetentionStr}`
+    );
+  }
+  
+  if (isNaN(rateLimitRetentionDays) || rateLimitRetentionDays < 0) {
+    throw new Error(
+      `RATE_LIMIT_RETENTION_DAYS must be 0 or a positive integer. Got: ${rateLimitRetentionStr}`
+    );
+  }
+
+  console.log(
+    `🗑️ [Config] Autothread Log Retention: ${autothreadLogRetentionDays === 0 ? "⚪ Disabled" : `✅ ${autothreadLogRetentionDays} days`}`,
+  );
+  console.log(
+    `🗑️ [Config] Rate Limit Retention: ${rateLimitRetentionDays === 0 ? "⚪ Disabled" : `✅ ${rateLimitRetentionDays} days`}`,
+  );
+
   const isFullyConfigured = botToken && guildId && organizersChannelId;
 
   let discord: DiscordConfig | undefined;
@@ -133,6 +169,10 @@ export function loadEnv(): RuntimeConfig {
       enabled: rateLimitEnabled,
       windowSeconds: rateLimitWindow,
       maxRequests: rateLimitMax,
+    },
+    retention: {
+      autothreadLogRetentionDays,
+      rateLimitRetentionDays,
     },
   };
 }
